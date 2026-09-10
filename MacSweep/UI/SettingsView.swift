@@ -1,0 +1,130 @@
+import SwiftUI
+
+struct SettingsView: View {
+    @Bindable var appState: AppState
+    @State private var newPathText = ""
+    @State private var showClearHistoryConfirmation = false
+
+    private let sizeOptions: [(String, Int64)] = [
+        ("100 MB", 100 * 1024 * 1024),
+        ("250 MB", 250 * 1024 * 1024),
+        ("512 MB (Default)", 512 * 1024 * 1024),
+        ("1 GB", 1024 * 1024 * 1024),
+        ("2 GB", 2 * 1024 * 1024 * 1024),
+        ("5 GB", 5 * 1024 * 1024 * 1024),
+    ]
+
+    var body: some View {
+        Form {
+            Section("Scan Categories") {
+                Text("Select which categories are included when running a scan.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                ForEach(ScanCategory.allCases.filter { $0 != .reviewOnly }) { category in
+                    Toggle(category.displayName, isOn: Binding(
+                        get: { appState.settings.enabledCategories.contains(category) },
+                        set: { enabled in
+                            var updated = appState.settings.enabledCategories
+                            if enabled {
+                                updated.insert(category)
+                            } else {
+                                updated.remove(category)
+                            }
+                            appState.settings.enabledCategories = updated
+                            appState.updateSettings(appState.settings)
+                        }
+                    ))
+                }
+            }
+
+            Section("Large Files Discovery") {
+                Picker("Minimum File Size", selection: Binding(
+                    get: { appState.settings.minLargeFileSize },
+                    set: {
+                        appState.settings.minLargeFileSize = $0
+                        appState.updateSettings(appState.settings)
+                    }
+                )) {
+                    ForEach(sizeOptions, id: \.1) { option in
+                        Text(option.0).tag(option.1)
+                    }
+                }
+                Text("Files in ~/Downloads and ~/Desktop exceeding this size will be discovered for review.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Path Exclusions") {
+                Text("Paths listed here are ignored during scans and will never be selected for cleanup.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                if appState.settings.excludedPaths.isEmpty {
+                    Text("No custom exclusions configured.")
+                        .font(.callout)
+                        .foregroundStyle(.tertiary)
+                } else {
+                    ForEach(appState.settings.excludedPaths, id: \.self) { path in
+                        HStack {
+                            Text(path)
+                                .font(.caption)
+                                .textSelection(.enabled)
+                            Spacer()
+                            Button("Remove") {
+                                appState.removeExcludedPath(path)
+                            }
+                            .buttonStyle(.borderless)
+                        }
+                    }
+                }
+
+                HStack {
+                    TextField("Add path to exclude (e.g. /Users/name/Library/Caches/...)", text: $newPathText)
+                    Button("Add") {
+                        let trimmed = newPathText.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !trimmed.isEmpty {
+                            appState.addExcludedPath(trimmed)
+                            newPathText = ""
+                        }
+                    }
+                    .disabled(newPathText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+
+            Section("Safety Policy") {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Protected Paths Cannot Be Overridden", systemImage: "shield.checkered")
+                        .font(.callout.bold())
+                    Text("System roots (`/System`, `/usr`, `/bin`, `/etc`) and personal user folders (`Documents`, `Desktop`, `.ssh`, `Keychains`) are permanently protected by MacSweep's safety engine and can never be disabled by settings.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Section("Cleanup History") {
+                HStack {
+                    Text("Retained Operations: \(appState.history.count)")
+                    Spacer()
+                    Button("Clear History", role: .destructive) {
+                        showClearHistoryConfirmation = true
+                    }
+                    .disabled(appState.history.isEmpty)
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .navigationTitle("Settings")
+        .confirmationDialog(
+            "Clear Cleanup History?",
+            isPresented: $showClearHistoryConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Clear All History", role: .destructive) {
+                appState.clearHistory()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will remove all saved operation records. Files in the macOS Trash are not affected.")
+        }
+    }
+}
