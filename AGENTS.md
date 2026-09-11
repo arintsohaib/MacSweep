@@ -9,7 +9,7 @@ MacSweep must be safer and more deterministic than an AI agent performing ad-hoc
 ## Operating rules
 
 1. Read this file and every document in `docs/` before making architectural decisions.
-2. Implement incrementally according to `docs/20-IMPLEMENTATION-PLAN.md`.
+2. Implement incrementally according to `docs/19-ROADMAP.md`.
 3. Before changing architecture, update the relevant specification and keep implementation aligned.
 4. Never silently weaken a safety rule to make a test pass.
 5. Never use destructive shell commands as the normal cleanup mechanism.
