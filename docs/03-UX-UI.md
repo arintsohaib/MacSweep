@@ -95,6 +95,13 @@ SF Symbols remain the default for all in-list and chrome icons; custom images ar
 - Findings: category icon tile, icon-bearing risk badge, "Review only" / "Excluded" tags, and a right-aligned monospaced size.
 - Settings: category rows show an icon, an Info/Review risk tag, a summary and a cleanup note. Every scan category has a `systemImage` and settings metadata.
 
+### Menus & About (v0.6.0)
+
+- The app menu replaces the standard About item with **About MacSweep**, opening a dedicated window with the app icon, version, maker (**GrayHawk Sentinel**), website, support email, GitHub and help links.
+- The **Help** menu links to the README/help, the GrayHawk Sentinel website, support email, the public GitHub repository, the issue tracker and the license.
+- `AppInfo` is the single source of truth for name, version, maker and public URLs; Settings also shows an **About** section with the same links.
+- The Info.plist carries an `NSHumanReadableCopyright` of "Copyright © 2026 GrayHawk Sentinel".
+
 ## UI decisions (Phase 6)
 
 - Single `@Observable` `AppState` on the MainActor holds scan phase, result, selection, and exclusions; the scan engine runs off the main actor and reports progress back via a MainActor-bound `ProgressReporter`.

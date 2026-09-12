@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct SettingsView: View {
@@ -165,6 +166,26 @@ struct SettingsView: View {
                     }
                     .disabled(appState.history.isEmpty)
                 }
+            }
+
+            Section("About") {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("\(AppInfo.name) · \(AppInfo.versionDescription)")
+                        .font(.callout.bold())
+                    Text("Made by \(AppInfo.developer).")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                HStack(spacing: 14) {
+                    Button("Website") { NSWorkspace.shared.open(AppInfo.websiteURL) }
+                    Button("Support") { NSWorkspace.shared.open(AppInfo.emailURL) }
+                    Button("GitHub") { NSWorkspace.shared.open(AppInfo.githubURL) }
+                }
+                .buttonStyle(.link)
+                Text(AppInfo.emailAddress)
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .textSelection(.enabled)
             }
         }
         .formStyle(.grouped)

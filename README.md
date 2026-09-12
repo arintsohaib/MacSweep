@@ -12,6 +12,8 @@ MacSweep is a native macOS utility that scans your user library for caches, logs
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/arintsohaib/MacSweep/blob/main/LICENSE)
 [![Platform](https://img.shields.io/badge/macOS-15%20%2B-blue.svg)](https://support.apple.com/en-us/113947)
 
+By [GrayHawk Sentinel](https://grayhawks.com) · [grayhawks.com](https://grayhawks.com) · [info@grayhawks.com](mailto:info@grayhawks.com)
+
 </div>
 
 ## Two ways to clean
@@ -164,6 +166,15 @@ touch /tmp/macsweep-real-scan-test   # enables RealScanInvariantsTests for one r
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+## About
+
+MacSweep is developed by **GrayHawk Sentinel**.
+
+- Website: [grayhawks.com](https://grayhawks.com)
+- Email: [info@grayhawks.com](mailto:info@grayhawks.com)
+- GitHub: [github.com/arintsohaib/MacSweep](https://github.com/arintsohaib/MacSweep)
+- Report an issue: [GitHub Issues](https://github.com/arintsohaib/MacSweep/issues)
 
 ## Acknowledgments
 
