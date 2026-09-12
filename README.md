@@ -47,6 +47,7 @@ Findings panes and the Overview have **Select All / Deselect All**, and selectio
 
 Other highlights:
 
+- **At-a-glance dashboard** — the Overview shows your Mac model, chip, CPU cores, memory, storage usage and macOS version.
 - **Risk model** — `low` (default-selected), `review` (not selected by default), and `protected` (never cleanable) levels with per-finding evidence.
 - **Nothing is selected automatically.** Every scan starts with an empty selection; you choose exactly what to clean.
 - **System-owned data is never touched** — Apple bundle identifiers (`com.apple.*`), core-OS components, preference files, and macOS interface state (Dock, Launchpad, default apps, personalization, privacy settings) are excluded from detection and re-checked at cleanup time. macOS background services are not "uninstalled apps".

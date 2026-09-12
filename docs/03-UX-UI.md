@@ -31,6 +31,11 @@ Show:
 - The Overview and every findings pane expose **Select All / Deselect All**, which only ever select cleanable, non-excluded items.
 - Default settings enable only the Basic profile, so a new user never scans or cleans everything by accident.
 
+### System info card (v0.7.0)
+
+- The Overview shows a "This Mac" card: model (from `hw.model`, mapped to a friendly name with a raw fallback), chip, CPU cores, memory, storage free/total with a usage bar, and the macOS version.
+- `SystemInfoProvider` reads everything from read-only syscalls and Foundation APIs — no external processes, no network. `AppState.systemInfo` is captured once at launch (injectable for tests).
+
 ## Finding row
 
 Display:

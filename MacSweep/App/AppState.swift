@@ -68,6 +68,8 @@ final class AppState {
     private(set) var cleanedIDs: Set<CleanupItemID> = []
     var sidebarItem: SidebarItem = .overview
     private(set) var scanMode: CleanupMode = .basic
+    /// A read-only snapshot of the current Mac, shown on the dashboard.
+    let systemInfo: SystemInfo
 
     private let persistence: any PersistenceService
     var settings: UserSettings
@@ -75,8 +77,9 @@ final class AppState {
     private var scanTask: Task<Void, Never>?
     private var cleanupTask: Task<Void, Never>?
 
-    init(persistence: any PersistenceService = FilePersistenceService()) {
+    init(persistence: any PersistenceService = FilePersistenceService(), systemInfo: SystemInfo = .current()) {
         self.persistence = persistence
+        self.systemInfo = systemInfo
         let loaded = persistence.loadSettings()
         self.settings = loaded
     }

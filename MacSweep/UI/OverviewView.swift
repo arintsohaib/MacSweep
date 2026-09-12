@@ -8,6 +8,7 @@ struct OverviewView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.sectionSpacing) {
                 header
+                systemCard
 
                 if appState.isScanning {
                     scanningCard
@@ -57,6 +58,77 @@ struct OverviewView: View {
             }
             Spacer()
         }
+    }
+
+    // MARK: System info
+
+    private var systemCard: some View {
+        let info = appState.systemInfo
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                Image(systemName: modelIcon(info))
+                    .font(.system(size: 20))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 42, height: 42)
+                    .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(info.modelName)
+                        .font(.headline)
+                    Text("\(info.chipName) · \(info.logicalCores) cores")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Text("macOS \(info.macOSVersion)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Divider()
+
+            HStack(alignment: .top, spacing: 24) {
+                systemStat("Memory", MacByteFormat.format(Int64(info.memoryBytes)), "memorychip")
+                systemStat("Storage free", MacByteFormat.format(info.storageFreeBytes), "internaldrive")
+                systemStat("Processor", info.chipName, "cpu")
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                ProgressView(value: info.storageUsedFraction)
+                    .tint(storageTint(info.storageUsedFraction))
+                Text("\(MacByteFormat.format(info.storageUsedBytes)) used of \(MacByteFormat.format(info.storageTotalBytes))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .card()
+    }
+
+    private func systemStat(_ title: String, _ value: String, _ icon: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Label(title, systemImage: icon)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.callout.weight(.semibold))
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func storageTint(_ fraction: Double) -> Color {
+        if fraction >= 0.9 { return .red }
+        if fraction >= 0.75 { return .orange }
+        return .accentColor
+    }
+
+    private func modelIcon(_ info: SystemInfo) -> String {
+        let id = info.modelIdentifier
+        if id.hasPrefix("MacBook") { return "laptopcomputer" }
+        if id.hasPrefix("Macmini") { return "macmini" }
+        if id.hasPrefix("MacStudio") { return "macstudio" }
+        if id.hasPrefix("MacPro") { return "macpro.gen3" }
+        return "desktopcomputer"
     }
 
     // MARK: Scan controls
