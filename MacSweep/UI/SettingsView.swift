@@ -27,22 +27,40 @@ struct SettingsView: View {
                 appState.updateSettings(appState.settings)
             }
         )) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(category.displayName)
-                Text(category.settingsSummary)
-                    .font(.caption)
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: category.systemImage)
+                    .font(.callout)
                     .foregroundStyle(.secondary)
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Image(systemName: category.cleanupRisk == .informational ? "info.circle" : "exclamationmark.triangle")
-                        .font(.caption2)
+                    .frame(width: 30, height: 30)
+                    .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        Text(category.displayName)
+                            .font(.body.weight(.medium))
+                        riskTag(category)
+                    }
+                    Text(category.settingsSummary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     Text(category.settingsCleanupNote)
                         .font(.caption2)
+                        .foregroundStyle(.tertiary)
                 }
-                .foregroundStyle(category.cleanupRisk == .informational ? Color.secondary : Color.orange)
             }
         }
         .disabled(!implemented)
         .opacity(implemented ? 1 : 0.55)
+    }
+
+    private func riskTag(_ category: ScanCategory) -> some View {
+        let informational = category.cleanupRisk == .informational
+        let color: Color = informational ? .secondary : .orange
+        return Text(informational ? "Info" : "Review")
+            .font(.caption2.weight(.semibold))
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(color.opacity(0.15), in: Capsule())
+            .foregroundStyle(color)
     }
 
     private let sizeOptions: [(String, Int64)] = [

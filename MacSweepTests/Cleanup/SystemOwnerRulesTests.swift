@@ -52,6 +52,16 @@ struct SystemOwnerRulesTests {
         #expect(!SystemOwnerRules.isOwnedByInstalled("com.vendor.ActiveExtra", installed: installed))
     }
 
+    @Test("file names map to bundle identifiers and system ownership")
+    func pathNames() {
+        #expect(SystemOwnerRules.bundleIDCandidate(fromFileName: "com.apple.dock.plist") == "com.apple.dock")
+        #expect(SystemOwnerRules.bundleIDCandidate(fromFileName: "com.apple.dock.savedState") == "com.apple.dock")
+        #expect(SystemOwnerRules.bundleIDCandidate(fromFileName: "com.apple.Safari.binarycookies") == "com.apple.Safari")
+        #expect(SystemOwnerRules.isSystemOwnedPath(URL(fileURLWithPath: "/Users/u/Library/Caches/com.apple.dock")))
+        #expect(SystemOwnerRules.isSystemOwnedPath(URL(fileURLWithPath: "/Users/u/Library/Preferences/com.apple.dock.plist")))
+        #expect(!SystemOwnerRules.isSystemOwnedPath(URL(fileURLWithPath: "/Users/u/Library/Caches/com.vendor.App")))
+    }
+
     @Test("application identity check follows the bundle identifier")
     func identity() {
         let apple = ApplicationIdentity(

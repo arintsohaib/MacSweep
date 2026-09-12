@@ -88,6 +88,13 @@ Custom artwork lives in `MacSweep/Assets.xcassets` (user-provided icons, no netw
 
 SF Symbols remain the default for all in-list and chrome icons; custom images are reserved for empty states and app iconography.
 
+### Layout system (v0.5.0)
+
+- A shared `Theme` (corner radius, spacing, max content width) and a `card()` modifier group related content on a subtle `controlBackgroundColor` surface with a hairline border.
+- Overview: hero header, Basic/Advanced mode cards, stat cards (Reclaimable / Findings / Selected), a category breakdown with per-category icons and bars, and tinted notice cards.
+- Findings: category icon tile, icon-bearing risk badge, "Review only" / "Excluded" tags, and a right-aligned monospaced size.
+- Settings: category rows show an icon, an Info/Review risk tag, a summary and a cleanup note. Every scan category has a `systemImage` and settings metadata.
+
 ## UI decisions (Phase 6)
 
 - Single `@Observable` `AppState` on the MainActor holds scan phase, result, selection, and exclusions; the scan engine runs off the main actor and reports progress back via a MainActor-bound `ProgressReporter`.

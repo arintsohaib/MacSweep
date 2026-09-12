@@ -231,4 +231,39 @@ struct SecurityAuditTests {
         #expect(fs.exists(URL(fileURLWithPath: path)))
         #expect(trash.movedSources.isEmpty)
     }
+
+    @Test("macOS Dock, default-app and personalization state can never be cleaned")
+    func systemInterfaceStateRejected() async throws {
+        let fs = InMemoryFileSystem()
+        let paths = [
+            "/Users/u/Library/Preferences/com.apple.dock.plist",
+            "/Users/u/Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist",
+            "/Users/u/Library/Application Support/Dock/desktoppicture.db",
+            "/Users/u/Library/Caches/com.apple.dock",
+        ]
+        for path in paths { fs.addFile(path, size: 10) }
+
+        let trash = RecordingTrashService(simulatedFileSystem: fs)
+        let engine = CleanupEngine(fileSystem: fs, trash: trash, homeDirectory: home)
+
+        for path in paths {
+            let item = try CleanupItem(
+                category: .applicationCaches,
+                title: "system state",
+                reason: "should never be cleanable",
+                paths: [PathSnapshot(url: URL(fileURLWithPath: path), kind: .file, size: 10, modificationDate: nil)],
+                risk: .review,
+                confidence: .medium,
+                evidence: [Evidence(kind: .pathConvention, detail: "evidence")],
+                recommendedAction: .moveToTrash,
+                selectedByDefault: false,
+                cleanupAllowed: true
+            )
+            let report = await engine.cleanup(selectedItems: [item])
+            #expect(report.rejectedCount == 1, "\(path) should be rejected")
+            #expect(report.results.first?.errorCategory == .protected)
+            #expect(fs.exists(URL(fileURLWithPath: path)))
+        }
+        #expect(trash.movedSources.isEmpty)
+    }
 }

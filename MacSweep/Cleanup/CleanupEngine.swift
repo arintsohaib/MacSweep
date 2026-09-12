@@ -47,6 +47,19 @@ public struct CleanupEngine: Sendable {
             )
         }
 
+        // Last line of defense: reject system-owned paths even if a scanner
+        // mislabeled them (for example com.apple.dock.plist or a com.apple.*
+        // container). Removing these makes macOS reset user settings.
+        if let systemPath = item.paths.first(where: { SystemOwnerRules.isSystemOwnedPath($0.url) }) {
+            return CleanupItemResult(
+                itemID: item.id,
+                status: .rejected,
+                errorCategory: .protected,
+                message: "\(systemPath.url.lastPathComponent) belongs to macOS and is never cleaned.",
+                recoverySuggestion: "System-owned data is permanently protected."
+            )
+        }
+
         guard item.cleanupAllowed, item.risk != .protected else {
             return CleanupItemResult(
                 itemID: item.id,

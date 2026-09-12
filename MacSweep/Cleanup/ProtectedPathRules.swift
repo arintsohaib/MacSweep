@@ -16,6 +16,14 @@ public struct ProtectedPathRules: Sendable {
             // Preferences are user settings, never reclaimable storage. macOS
             // silently resets them (default apps, Dock, Finder, ...) when removed.
             "Library/Preferences",
+            // macOS user-interface state: Dock/Launchpad layout, recent items,
+            // privacy database and login-item bookkeeping. Removing these makes
+            // macOS recreate defaults (Dock position/items, default browser, ...).
+            "Library/Application Support/Dock",
+            "Library/Application Support/com.apple.sharedfilelist",
+            "Library/Application Support/com.apple.backgroundtaskmanagementagent",
+            "Library/Application Support/com.apple.TCC",
+            "Library/Apple",
             "Library/Keychains", "Library/Mail", "Library/Messages", "Library/Safari",
             "Library/Application Support/Google/Chrome",
             "Library/Application Support/com.apple.AddressBook",

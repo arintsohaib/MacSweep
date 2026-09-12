@@ -66,4 +66,15 @@ struct ProtectedPathRulesTests {
         #expect(!rules.isProtectedOrContainsProtected(URL(fileURLWithPath: "/Users/u/Library/Caches/com.vendor.App")))
         #expect(!rules.isProtectedOrContainsProtected(URL(fileURLWithPath: "/Users/u/Library/Containers/com.vendor.App")))
     }
+
+    @Test("macOS interface state that controls Dock, default apps and personalization is protected")
+    func systemInterfaceState() {
+        let rules = ProtectedPathRules(homeDirectory: home)
+        #expect(rules.isProtected(URL(fileURLWithPath: "/Users/u/Library/Preferences/com.apple.dock.plist")))
+        #expect(rules.isProtected(URL(fileURLWithPath: "/Users/u/Library/Preferences/com.apple.LaunchServices")))
+        #expect(rules.isProtected(URL(fileURLWithPath: "/Users/u/Library/Application Support/Dock")))
+        #expect(rules.isProtected(URL(fileURLWithPath: "/Users/u/Library/Application Support/Dock/desktoppicture.db")))
+        #expect(rules.isProtected(URL(fileURLWithPath: "/Users/u/Library/Application Support/com.apple.sharedfilelist")))
+        #expect(rules.isProtected(URL(fileURLWithPath: "/Users/u/Library/Application Support/com.apple.TCC")))
+    }
 }

@@ -47,7 +47,7 @@ Other highlights:
 
 - **Risk model** — `low` (default-selected), `review` (not selected by default), and `protected` (never cleanable) levels with per-finding evidence.
 - **Nothing is selected automatically.** Every scan starts with an empty selection; you choose exactly what to clean.
-- **System-owned data is never touched** — Apple bundle identifiers (`com.apple.*`), core-OS components, and preference files are excluded from detection and permanently protected at cleanup time. macOS background services are not "uninstalled apps".
+- **System-owned data is never touched** — Apple bundle identifiers (`com.apple.*`), core-OS components, preference files, and macOS interface state (Dock, Launchpad, default apps, personalization, privacy settings) are excluded from detection and re-checked at cleanup time. macOS background services are not "uninstalled apps".
 - **App extensions and app groups are attributed to their owner** — `net.whatsapp.WhatsApp.Intents`, `UBF8T346G9.com.microsoft.teams`, `group.*` containers, and similar are never mistaken for leftovers while the owning app is installed. Group containers and launch agents are not used to infer that an app is gone.
 - **Protected paths** — system roots, personal folders (`Documents`, `Desktop`, `Downloads`, `~/Library/Preferences`), credentials (`.ssh`, `.gnupg`, `.aws`), Keychains, mail, messages, and browser profiles are permanently protected and cannot be disabled by any setting.
 - **Per-item exclusions** — exclude any finding (or any path in Settings); exclusions persist and are honored by future scans.

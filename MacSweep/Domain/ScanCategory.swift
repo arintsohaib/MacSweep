@@ -37,6 +37,22 @@ public enum ScanCategory: String, CaseIterable, Codable, Sendable, Identifiable,
         }
     }
 
+    /// SF Symbol used for the category in lists, badges and the sidebar.
+    public var systemImage: String {
+        switch self {
+        case .uninstalledAppRemnants: "shippingbox"
+        case .applicationCaches: "arrow.triangle.2.circlepath"
+        case .applicationSupport: "folder"
+        case .webStorage: "globe"
+        case .logs: "doc.text"
+        case .savedState: "macwindow"
+        case .launchMetadata: "power"
+        case .developerCaches: "hammer"
+        case .largeFiles: "externaldrive"
+        case .reviewOnly: "shield.lefthalf.filled"
+        }
+    }
+
     /// How a category behaves when the user selects an item for cleanup.
     public enum CleanupRisk: Sendable {
         /// Never cleaned: shown for information only.

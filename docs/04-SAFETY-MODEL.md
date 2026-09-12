@@ -56,6 +56,8 @@ Therefore:
 
 - Bundle identifiers owned by macOS (`com.apple.*`, `org.cups.*`, `com.openssh.*`, ...) and by MacSweep itself are never cleanup candidates, regardless of app discovery.
 - `~/Library/Preferences` is never scanned for cleanup and is permanently protected at cleanup time.
+- macOS interface state that controls Dock/Launchpad layout, default applications, personalization, privacy (TCC) and login-item bookkeeping — `~/Library/Application Support/Dock`, `com.apple.sharedfilelist`, `com.apple.backgroundtaskmanagementagent`, `com.apple.TCC`, `~/Library/Apple` — is permanently protected. Removing it makes macOS silently recreate Dock/default-app/personalization defaults.
+- At cleanup time, any path whose own name is a system-owned bundle identifier (for example `com.apple.dock.plist` or a `com.apple.*` container) is rejected even if a scanner mislabeled it.
 - App extensions (`<app>.<extension>`) and app groups (`group.`, `groups.`, `<TeamID>.` prefixes) are resolved back to their owning application; if the owner is installed they are not reported.
 - Group containers, launch agents, caches, logs, web storage and saved state are not used to infer that an application is gone. They are shared or system-managed, and macOS protects app containers (`com.apple.containermanager.*`).
 - A folder whose name is not a valid reverse-DNS bundle identifier cannot prove application ownership and is not reported as a leftover.

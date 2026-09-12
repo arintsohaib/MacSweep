@@ -60,6 +60,28 @@ public enum SystemOwnerRules {
         isSystemOwned(bundleID: bundleID.rawValue)
     }
 
+    /// Extracts a bundle-identifier-looking name from a file or folder name,
+    /// stripping common suffixes macOS uses (`com.apple.dock.plist`,
+    /// `com.apple.dock.savedState`, `com.apple.Safari.binarycookies`).
+    public static func bundleIDCandidate(fromFileName name: String) -> String? {
+        var value = name
+        for suffix in [".plist", ".savedState", ".binarycookies"] where value.hasSuffix(suffix) {
+            value = String(value.dropLast(suffix.count))
+        }
+        return value.isEmpty ? nil : value
+    }
+
+    /// True when a path's own name identifies system-owned data (for example
+    /// `~/Library/Preferences/com.apple.dock.plist` or a `com.apple.*` container).
+    /// Used as a last line of defense at cleanup time.
+    public static func isSystemOwnedPath(_ url: URL) -> Bool {
+        guard let candidate = bundleIDCandidate(fromFileName: url.lastPathComponent),
+              BundleIdentifier(rawValue: candidate) != nil else {
+            return false
+        }
+        return isSystemOwned(bundleID: candidate)
+    }
+
     /// True when a finding is owned by a specific bundle identifier that the
     /// system (or MacSweep) owns and therefore must be protected from cleanup.
     public static func isProtectedOwner(_ application: ApplicationIdentity?) -> Bool {

@@ -38,9 +38,12 @@ struct ResultsView: View {
 
     private var selectionBar: some View {
         HStack {
-            Text("\(selectedSelectableCount) of \(selectableItems.count) selectable item\(selectableItems.count == 1 ? "" : "s") selected")
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            Label(
+                "\(selectedSelectableCount) of \(selectableItems.count) selectable item\(selectableItems.count == 1 ? "" : "s") selected",
+                systemImage: "checklist"
+            )
+            .font(.callout)
+            .foregroundStyle(.secondary)
             Spacer()
             Button(allSelected ? "Deselect All" : "Select All") {
                 if allSelected {
@@ -51,8 +54,9 @@ struct ResultsView: View {
             }
             .disabled(selectableItems.isEmpty)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 9)
+        .background(.bar)
     }
 
     @ViewBuilder
