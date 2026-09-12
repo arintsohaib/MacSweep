@@ -56,12 +56,14 @@ System ownership is enforced in two places:
 A candidate is a leftover only when:
 - its name is a valid reverse-DNS bundle identifier;
 - that identifier is **not** system-owned (Apple/MacSweep);
-- no installed application resolves to that identifier (standard application folders **and** LaunchServices);
-- for group containers, the `group.`-stripped owner identifier is also not installed;
-- the path is not protected;
-- the location is a known application-data location.
+- no installed application owns it — checked by exact match, app-extension prefix (`<app>.<extension>`), and team / app-group prefixes (`group.`, `groups.`, `<TeamID>.`) resolved back to the owner — across the standard application folders **and** LaunchServices;
+- the path is not protected.
 
-Leftover findings are always `review` risk, never pre-selected, and cleanup only ever happens after explicit per-item selection. Folders whose name is not a valid bundle identifier (e.g. `data`, `cache`, `Google`) cannot prove application ownership and are not reported.
+Only two locations are inspected: sandbox containers (`~/Library/Containers`) and application-support folders (`~/Library/Application Support`). Group Containers, LaunchAgents, Preferences, Caches, Logs, WebKit, HTTPStorages and Saved Application State are never scanned by this rule: they are shared, system-managed, or covered by dedicated scanners, and their folder names cannot reliably prove that an application is gone.
+
+Leftover findings are **informational only** — `review` risk, never pre-selected, and `cleanupAllowed = false`. Application data may still be shared with helpers or services, and macOS manages sandbox containers (they carry `com.apple.containermanager.*` metadata and cannot be moved without Full Disk Access), so MacSweep does not remove them automatically.
+
+Folders whose name is not a valid bundle identifier (e.g. `data`, `cache`, `Google`) cannot prove application ownership and are not reported.
 
 ## Bundle ID mapping
 
@@ -84,12 +86,12 @@ Do not remove system helpers merely because the main application is absent.
 
 ## Uninstalled-leftovers rule decisions (Phase 5)
 
-- Attribution strength drives confidence, not automatic selection: a data folder whose name is a valid bundle identifier is strong attribution; when the owning app is absent the finding is REVIEW and never pre-selected. System-owned identifiers are not reported at all.
-- Group containers are always at least REVIEW (shared ownership), even when the owning app is absent. A group container whose `group.`-stripped identifier matches an installed app is treated as active and skipped.
-- Launch metadata (`~/Library/LaunchAgents`) for an absent app is always REVIEW (helpers and system components are not auto-removed). System-level launch directories are never scanned.
-- All discovered locations for one bundle identifier are merged into a single finding (one row, multiple paths); the finding's risk is the maximum of its paths' risks.
+- Attribution strength drives confidence, not automatic selection: a data folder whose name is a valid bundle identifier is strong attribution; when the owning app is absent the finding is REVIEW, never pre-selected, and never cleanable. System-owned identifiers are not reported at all.
+- Group containers are **not scanned** by this rule. Their names mix team prefixes, `group.`/`groups.` prefixes, and non-app group identifiers, so ownership cannot be proven and removal breaks installed applications.
+- Launch metadata (`~/Library/LaunchAgents`) is **not scanned** by this rule: updater/helper agents for installed applications are indistinguishable from abandoned ones.
+- All discovered locations for one bundle identifier are merged into a single finding (one row, multiple paths), always at REVIEW.
 - Renamed applications: bundle-identifier-named data is unaffected by renames (identity is the bundle ID). Name-based folders are not reported, because a non-bundle-ID name cannot prove ownership.
-- Symlinked data entries are reported with zero size and are never followed during size calculation; the cleanup engine revalidates them before any move.
+- Symlinked data entries are reported with zero size and are never followed during size calculation.
 - Inaccessible locations produce structured permission diagnostics and never stop the scan.
 
 ## System-ownership decisions (v0.2.0)
@@ -98,3 +100,11 @@ Do not remove system helpers merely because the main application is absent.
 - A `com.apple.*` / core-OS / MacSweep identifier is never a leftover candidate, independent of app discovery.
 - `~/Library/Preferences` is excluded from scanning and permanently protected from cleanup.
 - No finding is selected automatically; the user must choose every item.
+
+## Leftover-scope decisions (v0.2.1)
+
+- The remnants rule is limited to `~/Library/Containers` and `~/Library/Application Support`.
+- App-extension identifiers (`net.whatsapp.WhatsApp.Intents`), team-prefixed app groups (`UBF8T346G9.com.microsoft.teams`), `group.`/`groups.` app groups, and `<TeamID>.groups.com.apple.*` are resolved to their owning app; if the owner is installed, they are not reported.
+- Leftovers are informational only (`cleanupAllowed = false`); they are never offered for one-click cleanup.
+- Caches, logs, saved state and web-storage scanners skip system-owned identifiers so Apple data is never offered as reclaimable.
+- Rationale: folder-name heuristics cannot prove that shared application data is abandoned, and macOS protects sandbox containers. The safe default is to surface information, not to delete.

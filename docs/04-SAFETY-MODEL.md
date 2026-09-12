@@ -56,9 +56,11 @@ Therefore:
 
 - Bundle identifiers owned by macOS (`com.apple.*`, `org.cups.*`, `com.openssh.*`, ...) and by MacSweep itself are never cleanup candidates, regardless of app discovery.
 - `~/Library/Preferences` is never scanned for cleanup and is permanently protected at cleanup time.
+- App extensions (`<app>.<extension>`) and app groups (`group.`, `groups.`, `<TeamID>.` prefixes) are resolved back to their owning application; if the owner is installed they are not reported.
+- Group containers, launch agents, caches, logs, web storage and saved state are not used to infer that an application is gone. They are shared or system-managed, and macOS protects app containers (`com.apple.containermanager.*`).
 - A folder whose name is not a valid reverse-DNS bundle identifier cannot prove application ownership and is not reported as a leftover.
 - Installed-app detection must consider all standard application locations **and** LaunchServices, so system components are recognised as present.
-- Leftover findings are always `review` risk and never pre-selected; nothing is selected automatically.
+- Uninstalled-app leftovers are informational only: `review` risk, never pre-selected, and never cleanable. Nothing is selected or removed automatically.
 
 ## Revalidation
 

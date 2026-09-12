@@ -29,6 +29,29 @@ struct SystemOwnerRulesTests {
         #expect(!SystemOwnerRules.isSystemOwned(bundleID: "net.something.app"))
     }
 
+    @Test("group and team prefixes are normalized before classifying ownership")
+    func normalization() {
+        #expect(SystemOwnerRules.normalizedOwner("group.com.vendor.App") == "com.vendor.app")
+        #expect(SystemOwnerRules.normalizedOwner("UBF8T346G9.com.microsoft.teams") == "com.microsoft.teams")
+        #expect(SystemOwnerRules.normalizedOwner("243LU875E5.groups.com.apple.podcasts") == "com.apple.podcasts")
+        #expect(SystemOwnerRules.isSystemOwned(bundleID: "243LU875E5.groups.com.apple.podcasts"))
+        #expect(SystemOwnerRules.isSystemOwned(bundleID: "group.com.apple.shared"))
+        #expect(!SystemOwnerRules.isSystemOwned(bundleID: "6N38VWS5BX.ru.keepcoder.Telegram"))
+    }
+
+    @Test("installed ownership covers extensions and prefixed group identifiers")
+    func installedOwnership() {
+        let installed: Set<String> = ["com.vendor.active", "net.whatsapp.whatsapp", "ru.keepcoder.telegram"]
+        #expect(SystemOwnerRules.isOwnedByInstalled("com.vendor.Active", installed: installed))
+        #expect(SystemOwnerRules.isOwnedByInstalled("com.vendor.Active.Intents", installed: installed))
+        #expect(SystemOwnerRules.isOwnedByInstalled("UBF8T346G9.com.vendor.Active", installed: installed))
+        #expect(SystemOwnerRules.isOwnedByInstalled("group.net.whatsapp.WhatsApp.shared", installed: installed))
+        #expect(SystemOwnerRules.isOwnedByInstalled("6N38VWS5BX.ru.keepcoder.Telegram", installed: installed))
+        #expect(!SystemOwnerRules.isOwnedByInstalled("com.other.App", installed: installed))
+        // Must not match on a partial segment.
+        #expect(!SystemOwnerRules.isOwnedByInstalled("com.vendor.ActiveExtra", installed: installed))
+    }
+
     @Test("application identity check follows the bundle identifier")
     func identity() {
         let apple = ApplicationIdentity(

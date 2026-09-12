@@ -51,7 +51,7 @@ struct RealScanInvariantsTests {
         }
 
         // No system-owned (Apple/MacSweep) finding may ever be reported, and
-        // preferences must never appear as a finding.
+        // neither preferences nor shared group containers may appear as findings.
         for item in items {
             if let bundleID = item.application?.bundleIdentifier {
                 #expect(!SystemOwnerRules.isSystemOwned(bundleID),
@@ -60,6 +60,13 @@ struct RealScanInvariantsTests {
             for path in item.paths {
                 #expect(!path.url.path.contains("/Library/Preferences/"),
                         "Preference path reported: \(path.url.path)")
+                #expect(!path.url.path.contains("/Library/Group Containers/"),
+                        "Group container reported: \(path.url.path)")
+            }
+            // Uninstalled-app leftovers are informational only.
+            if item.category == .uninstalledAppRemnants {
+                #expect(!item.cleanupAllowed, "Remnant finding must be review-only: \(item.title)")
+                #expect(item.recommendedAction == .reviewOnly)
             }
         }
 

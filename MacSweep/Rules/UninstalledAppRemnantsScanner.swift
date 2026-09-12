@@ -3,11 +3,10 @@ import Foundation
 public struct UninstalledAppRemnantsScanner: FindingsScanner {
     public let category = ScanCategory.uninstalledAppRemnants
 
-    private struct AttributedPath {
+    private struct Candidate {
         let bundleID: BundleIdentifier
         let snapshot: PathSnapshot
         let location: DataLocation
-        let requiresReview: Bool
     }
 
     public func scan(context: ScanContext) async throws -> [CleanupItem] {
@@ -22,99 +21,78 @@ public struct UninstalledAppRemnantsScanner: FindingsScanner {
             return resolved != homePath && !resolved.hasPrefix(homePath + "/")
         }
 
-        // Resolve each candidate identifier at most once. LaunchServices knows about
-        // applications installed anywhere, not just in the default folders.
-        var installedLookup: [String: Bool] = [:]
+        // A container/folder is only a leftover when its identifier belongs to no
+        // installed application. Extension identifiers (`<app>.<extension>`),
+        // team-prefixed identifiers, and app-group prefixes are all resolved back
+        // to the owning application before this decision.
+        var resolvedLookup: [String: Bool] = [:]
         func isInstalled(_ bundleID: BundleIdentifier) -> Bool {
-            if installedIDs.contains(bundleID.normalized) { return true }
-            if let cached = installedLookup[bundleID.normalized] { return cached }
+            if SystemOwnerRules.isOwnedByInstalled(bundleID.rawValue, installed: installedIDs) { return true }
+            if let cached = resolvedLookup[bundleID.normalized] { return cached }
             let resolved = (try? context.applications.installedApplication(withBundleIdentifier: bundleID)) != nil
-            installedLookup[bundleID.normalized] = resolved
+            resolvedLookup[bundleID.normalized] = resolved
             return resolved
         }
 
-        // A folder is only a leftover candidate when it names a genuine third-party
-        // application identifier that is truly absent. Apple/system-owned identifiers
-        // (com.apple.*, ...) and MacSweep itself are never leftovers: macOS ships
-        // hundreds of background components that have no app bundle, and removing
-        // their data silently resets user configuration.
         func isRemnantCandidate(_ bundleID: BundleIdentifier) -> Bool {
-            guard !SystemOwnerRules.isSystemOwned(bundleID) else { return false }
+            if SystemOwnerRules.isSystemOwned(bundleID) { return false }
             if isInstalled(bundleID) { return false }
-            if let ownerID = Self.stripGroupPrefix(bundleID), isInstalled(ownerID) { return false }
             return true
         }
 
-        var attributed: [String: [AttributedPath]] = [:]
-        func collect(_ child: URL, location: DataLocation, requiresReview: Bool) throws {
+        var candidates: [Candidate] = []
+        func collect(_ child: URL, location: DataLocation) throws {
             try context.checkCancellation()
-            let baseName = Self.baseName(for: child.lastPathComponent, location: location)
-            guard let bundleID = BundleIDMapping.bundleID(fromFolderName: baseName),
+            guard let bundleID = BundleIDMapping.bundleID(fromFolderName: child.lastPathComponent),
                   isRemnantCandidate(bundleID),
                   !context.exclusions.isExcluded(child),
                   let snapshot = snapshot(of: child, context: context) else { return }
-            attributed[bundleID.normalized, default: []].append(
-                AttributedPath(bundleID: bundleID, snapshot: snapshot, location: location, requiresReview: requiresReview)
-            )
+            candidates.append(Candidate(bundleID: bundleID, snapshot: snapshot, location: location))
         }
 
+        // Only sandbox containers and Application Support folders are considered.
+        // Group Containers, LaunchAgents, Caches, Logs, WebKit, HTTPStorages and
+        // Saved Application State are either shared ownership, system-managed, or
+        // already covered by dedicated scanners, and their folder names cannot
+        // reliably prove that an application is gone.
         for child in enumerate(library.appendingPathComponent("Containers", isDirectory: true), context: context) {
-            try collect(child, location: .container, requiresReview: false)
-        }
-        for child in enumerate(library.appendingPathComponent("Group Containers", isDirectory: true), context: context) {
-            try collect(child, location: .groupContainer, requiresReview: true)
+            try collect(child, location: .container)
         }
         for child in enumerate(library.appendingPathComponent("Application Support", isDirectory: true), context: context) {
-            try collect(child, location: .applicationSupport, requiresReview: false)
+            try collect(child, location: .applicationSupport)
         }
-        for child in enumerate(library.appendingPathComponent("Caches", isDirectory: true), context: context) {
-            try collect(child, location: .caches, requiresReview: false)
+
+        var grouped: [String: [Candidate]] = [:]
+        for candidate in candidates {
+            grouped[candidate.bundleID.normalized, default: []].append(candidate)
         }
-        for child in enumerate(library.appendingPathComponent("Logs", isDirectory: true), context: context) {
-            try collect(child, location: .logs, requiresReview: false)
-        }
-        for child in enumerate(library.appendingPathComponent("WebKit", isDirectory: true), context: context) {
-            try collect(child, location: .webKit, requiresReview: false)
-        }
-        for child in enumerate(library.appendingPathComponent("HTTPStorages", isDirectory: true), context: context) {
-            try collect(child, location: .httpStorages, requiresReview: false)
-        }
-        for child in enumerate(library.appendingPathComponent("Saved Application State", isDirectory: true), context: context) {
-            try collect(child, location: .savedState, requiresReview: false)
-        }
-        for child in enumerate(library.appendingPathComponent("LaunchAgents", isDirectory: true), context: context) {
-            try collect(child, location: .launchAgents, requiresReview: true)
-        }
-        // ~/Library/Preferences is intentionally not scanned: preferences are user
-        // settings, not reclaimable storage. macOS silently resets configuration
-        // (default apps, Dock, Finder, ...) when preference files are removed.
 
         var items: [CleanupItem] = []
-        for (_, paths) in attributed.sorted(by: { $0.key < $1.key }) {
-            guard let bundleID = BundleIdentifier(rawValue: paths[0].bundleID.rawValue) else { continue }
-            let touchesProtected = paths.contains { isBlockedLocation($0.snapshot.url) }
-            let confidence: Confidence = (paths.contains { $0.requiresReview } || touchesProtected) ? .medium : .high
+        for (_, group) in grouped.sorted(by: { $0.key < $1.key }) {
+            guard let bundleID = BundleIdentifier(rawValue: group[0].bundleID.rawValue) else { continue }
+            let touchesProtected = group.contains { isBlockedLocation($0.snapshot.url) }
             let title = Self.title(for: bundleID)
-            let modifiedAt = paths.compactMap { $0.snapshot.modificationDate }.max()
+            let modifiedAt = group.compactMap { $0.snapshot.modificationDate }.max()
             do {
-                var reason = Self.reason(bundleID: bundleID, paths: paths)
+                var reason = "Data for \(bundleID.rawValue) remains on disk, but no installed application uses this identifier. Review each location; MacSweep does not remove application data automatically."
                 if touchesProtected {
-                    reason += " Some locations are permanently protected, so only review is offered."
+                    reason += " Some locations are permanently protected."
                 }
                 let item = try CleanupItem(
                     category: category,
                     application: ApplicationIdentity(bundleIdentifier: bundleID, name: title, isInstalled: false),
                     title: title,
                     reason: reason,
-                    paths: paths.map { $0.snapshot },
-                    // Leftovers are only ever offered for explicit review: never
-                    // pre-selected, always review risk.
+                    paths: group.map { $0.snapshot },
+                    // Leftovers are informational only: application data may still
+                    // be shared with helpers or services, and macOS protects app
+                    // containers. MacSweep never removes these automatically.
                     risk: .review,
-                    confidence: confidence,
-                    evidence: Self.evidence(bundleID: bundleID, paths: paths),
-                    recommendedAction: touchesProtected ? .reviewOnly : .moveToTrash,
+                    confidence: .medium,
+                    evidence: Self.evidence(bundleID: bundleID, locations: group.map { $0.location }),
+                    recommendedAction: .reviewOnly,
                     selectedByDefault: false,
-                    cleanupAllowed: !touchesProtected,
+                    cleanupAllowed: false,
                     modifiedAt: modifiedAt
                 )
                 items.append(item)
@@ -124,25 +102,6 @@ public struct UninstalledAppRemnantsScanner: FindingsScanner {
         }
 
         return items
-    }
-
-    private static func baseName(for name: String, location: DataLocation) -> String {
-        switch location {
-        case .httpStorages:
-            return name.hasSuffix(".binarycookies") ? String(name.dropLast(".binarycookies".count)) : name
-        case .savedState:
-            return name.hasSuffix(".savedState") ? String(name.dropLast(".savedState".count)) : name
-        case .launchAgents:
-            return name.hasSuffix(".plist") ? String(name.dropLast(".plist".count)) : name
-        default:
-            return name
-        }
-    }
-
-    private static func stripGroupPrefix(_ bundleID: BundleIdentifier) -> BundleIdentifier? {
-        let raw = bundleID.rawValue
-        guard raw.lowercased().hasPrefix("group.") else { return nil }
-        return BundleIdentifier(rawValue: String(raw.dropFirst("group.".count)))
     }
 
     private func enumerate(_ url: URL, context: ScanContext) -> [URL] {
@@ -201,25 +160,14 @@ public struct UninstalledAppRemnantsScanner: FindingsScanner {
         return last
     }
 
-    private static func reason(bundleID: BundleIdentifier, paths: [AttributedPath]) -> String {
-        var reason = "Data for \(bundleID.rawValue) remains on disk, but the application is no longer installed. Review each location before cleanup."
-        if paths.contains(where: { $0.location == .groupContainer }) {
-            reason += " It includes a shared group container that other applications may still use."
-        }
-        if paths.contains(where: { $0.location == .launchAgents }) {
-            reason += " It includes launch metadata that may belong to a helper component."
-        }
-        return reason
-    }
-
-    private static func evidence(bundleID: BundleIdentifier, paths: [AttributedPath]) -> [Evidence] {
+    private static func evidence(bundleID: BundleIdentifier, locations: [DataLocation]) -> [Evidence] {
         var result: [Evidence] = [
             Evidence(kind: .bundleIdentifierMatch, detail: "Data is stored under the bundle identifier \(bundleID.rawValue)."),
-            Evidence(kind: .applicationAbsent, detail: "No installed application has this bundle identifier."),
-            Evidence(kind: .pathConvention, detail: "Found in: " + paths.map { $0.location.displayName }.sorted().joined(separator: ", ") + "."),
+            Evidence(kind: .applicationAbsent, detail: "No installed application or app extension uses this identifier."),
+            Evidence(kind: .pathConvention, detail: "Found in: " + Set(locations.map { $0.displayName }).sorted().joined(separator: ", ") + "."),
         ]
-        if paths.contains(where: { $0.location == .groupContainer }) {
-            result.append(Evidence(kind: .sharedOwnership, detail: "Group containers can be shared between multiple applications."))
+        if locations.contains(.container) {
+            result.append(Evidence(kind: .other, detail: "Sandbox containers are managed by macOS and may be protected from removal."))
         }
         return result
     }

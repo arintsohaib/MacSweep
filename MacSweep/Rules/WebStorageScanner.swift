@@ -62,6 +62,7 @@ public struct WebStorageScanner: FindingsScanner {
                     modificationDate: meta.modificationDate
                 )
                 let name = child.lastPathComponent
+                if let bundleID = BundleIDMapping.bundleID(fromFolderName: name), SystemOwnerRules.isSystemOwned(bundleID) { continue }
                 let appName = name.split(separator: ".").last.map(String.init) ?? name
 
                 do {

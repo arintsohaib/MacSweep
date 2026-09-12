@@ -60,6 +60,7 @@ public struct SavedStateScanner: FindingsScanner {
                 modificationDate: meta.modificationDate
             )
             let baseName = String(name.dropLast(".savedState".count))
+            if let bundleID = BundleIDMapping.bundleID(fromFolderName: baseName), SystemOwnerRules.isSystemOwned(bundleID) { continue }
             let appTitle = baseName.split(separator: ".").last.map(String.init) ?? baseName
 
             do {

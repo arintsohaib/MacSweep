@@ -58,6 +58,7 @@ public struct ApplicationCacheScanner: FindingsScanner {
                 modificationDate: meta.modificationDate
             )
             let title = child.lastPathComponent
+            if let bundleID = BundleIDMapping.bundleID(fromFolderName: title), SystemOwnerRules.isSystemOwned(bundleID) { continue }
 
             do {
                 let item = try CleanupItem(
