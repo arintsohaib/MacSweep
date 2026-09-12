@@ -39,3 +39,10 @@ No "allow dangerous cleanup" switch in v1.
 - `ScanCategory.cleanupRisk` distinguishes informational categories (never cleaned: Uninstalled Apps, Large Files, Protected/Review) from review categories (Trash-only after explicit selection).
 - Categories without a scan rule in the current build (`applicationSupport`, `launchMetadata`) are shown for transparency but disabled, with a note explaining that no rule exists.
 - The Safety Policy section states that informational categories are never moved and lists the permanently protected locations, including `~/Library/Preferences`.
+
+## Cleanup modes and defaults (v0.4.0)
+
+- Default `UserSettings` enables only the Basic profile (`applicationCaches`, `logs`, `uninstalledAppRemnants`, `largeFiles`). Developer caches, web storage and saved state are opt-in via Advanced Clean or Settings.
+- `CleanupMode` defines the scan profile and the categories Basic may pre-select (regenerable only: caches and logs).
+- Choosing a mode on the Overview updates `enabledCategories`, so Settings always reflects the current profile.
+- Advanced Clean never pre-selects; users select explicitly, with Select All selecting only cleanable, non-excluded items.

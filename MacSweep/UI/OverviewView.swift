@@ -24,6 +24,9 @@ struct OverviewView: View {
                         reclaimableSection
                         breakdownSection
                     }
+                    if appState.scanMode == .advanced {
+                        advancedCaution
+                    }
                     warningsSection
                 }
             }
@@ -41,20 +44,20 @@ struct OverviewView: View {
                 .frame(height: 120)
             Text("Ready to Sweep")
                 .font(.title2.bold())
-            Text("Scan your Mac to find caches, logs, leftover app files, and other storage you can safely reclaim.")
+            Text("Choose Basic Clean for a safe, regenerable cleanup, or Advanced Clean to scan everything. Nothing is ever deleted — selected items move to the Trash.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-                .frame(maxWidth: 440)
+                .frame(maxWidth: 460)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 32)
     }
 
     private var scanSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             if let result = appState.result, !appState.isScanning {
-                Text("Last scan: \(result.finishedAt.formatted(date: .abbreviated, time: .shortened))")
+                Text("Last scan: \(result.finishedAt.formatted(date: .abbreviated, time: .shortened)) · \(appState.scanMode.title)")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -73,13 +76,25 @@ struct OverviewView: View {
                     }
                 }
             } else {
-                Button {
-                    appState.startScan()
-                } label: {
-                    Label(appState.result == nil ? "Scan for Reclaimable Storage" : "Scan Again", systemImage: "magnifyingglass")
-                }
-                .controlSize(.large)
+                modeButton(.basic)
+                modeButton(.advanced)
             }
+        }
+    }
+
+    private func modeButton(_ mode: CleanupMode) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Button {
+                appState.startScan(mode: mode)
+            } label: {
+                Label(mode.title, systemImage: mode.systemImage)
+            }
+            .controlSize(.large)
+            Text(mode.summary)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: 540, alignment: .leading)
         }
     }
 
@@ -97,16 +112,46 @@ struct OverviewView: View {
                 .font(.title3.bold())
             Text(MacByteFormat.format(appState.remainingReclaimableSize))
                 .font(.system(size: 34, weight: .bold, design: .rounded))
-            if !appState.selectedItems.isEmpty {
-                Button {
-                    showReview = true
-                } label: {
-                    Text(reviewButtonTitle)
+            HStack(spacing: 12) {
+                if !appState.selectedItems.isEmpty {
+                    Button {
+                        showReview = true
+                    } label: {
+                        Text(reviewButtonTitle)
+                    }
+                    .controlSize(.large)
                 }
-                .controlSize(.large)
-                .padding(.top, 4)
+                let selectable = appState.selectableItems(in: appState.allItems)
+                if !selectable.isEmpty {
+                    Button(allSelectableSelected ? "Deselect All" : "Select All (\(selectable.count))") {
+                        if allSelectableSelected {
+                            appState.deselectAll(in: appState.allItems)
+                        } else {
+                            appState.selectAll(in: appState.allItems)
+                        }
+                    }
+                    .controlSize(.large)
+                }
             }
+            .padding(.top, 4)
         }
+    }
+
+    private var allSelectableSelected: Bool {
+        let selectable = appState.selectableItems(in: appState.allItems)
+        return !selectable.isEmpty && selectable.allSatisfy { appState.isSelected($0) }
+    }
+
+    private var advancedCaution: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label("Advanced scan", systemImage: "exclamationmark.triangle.fill")
+                .font(.callout.bold())
+            Text("This scan included developer caches, web storage and saved state. Review each item before cleaning — removing them can slow the next build, re-download data, or sign you out of web sites. Nothing is selected automatically.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+        }
+        .padding(12)
+        .background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var reviewButtonTitle: String {

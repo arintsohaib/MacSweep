@@ -23,6 +23,14 @@ Show:
 - review selected cleanup button;
 - warnings if permissions limit scan coverage.
 
+### Cleanup modes (v0.4.0)
+
+- Overview offers two scan intents: **Basic Clean** (caches, logs, plus informational leftovers and large files) and **Advanced Clean** (all categories).
+- Basic pre-selects only regenerable cache/log items; Advanced pre-selects nothing.
+- Advanced results show a caution banner, and the review sheet warns when developer caches, web storage, or saved state are selected.
+- The Overview and every findings pane expose **Select All / Deselect All**, which only ever select cleanable, non-excluded items.
+- Default settings enable only the Basic profile, so a new user never scans or cleans everything by accident.
+
 ## Finding row
 
 Display:

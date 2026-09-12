@@ -9,7 +9,7 @@ public struct UserSettings: Codable, Sendable, Equatable {
 
     public init(
         version: Int = 1,
-        enabledCategories: Set<ScanCategory> = Set(ScanCategory.allCases),
+        enabledCategories: Set<ScanCategory> = CleanupMode.basic.scanCategories,
         minLargeFileSize: Int64 = 512 * 1024 * 1024,
         excludedPaths: [String] = [],
         confirmBeforeCleanup: Bool = true

@@ -14,6 +14,13 @@ MacSweep is a native macOS utility that scans your user library for caches, logs
 
 </div>
 
+## Two ways to clean
+
+- **Basic Clean** — scans caches, logs, leftovers and large files, and pre-selects only regenerable items. Nothing personal or system-owned is ever removed; leftovers and large files are shown for review only.
+- **Advanced Clean** — scans every category, including developer caches, web storage and saved state. Nothing is selected automatically — review each item (or use **Select All**) before moving anything.
+
+Findings panes and the Overview have **Select All / Deselect All**, and selection is limited to cleanable, non-excluded items. Anything you select goes to the macOS Trash and can be restored with **Put Back**.
+
 ## Product principle
 
 > **MacSweep recommends. You decide. MacSweep executes only what you explicitly approved.**

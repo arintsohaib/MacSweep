@@ -55,6 +55,61 @@ struct AppStateTests {
         #expect(state.selectedSize == 0)
     }
 
+    private func resultWithCleanableCategories() throws -> ScanResult {
+        let cache = try CleanupItem(
+            category: .applicationCaches,
+            title: "Cache",
+            reason: "regenerable",
+            paths: [PathSnapshot(url: URL(fileURLWithPath: "/Users/u/Library/Caches/com.vendor.App"), kind: .directory, size: 100, modificationDate: nil)],
+            risk: .review,
+            confidence: .medium,
+            evidence: [Evidence(kind: .pathConvention, detail: "d")],
+            recommendedAction: .moveToTrash,
+            selectedByDefault: false,
+            cleanupAllowed: true
+        )
+        let developer = try CleanupItem(
+            category: .developerCaches,
+            title: "DerivedData",
+            reason: "regenerable but disruptive",
+            paths: [PathSnapshot(url: URL(fileURLWithPath: "/Users/u/Library/Developer/Xcode/DerivedData"), kind: .directory, size: 200, modificationDate: nil)],
+            risk: .review,
+            confidence: .high,
+            evidence: [Evidence(kind: .pathConvention, detail: "d")],
+            recommendedAction: .moveToTrash,
+            selectedByDefault: false,
+            cleanupAllowed: true
+        )
+        return ScanResult(items: [cache, developer])
+    }
+
+    @MainActor
+    @Test("basic mode pre-selects regenerable items; advanced selects nothing")
+    func defaultSelectionByMode() throws {
+        let state = AppState(persistence: InMemoryPersistenceService())
+        state.applyResult(try resultWithCleanableCategories())
+
+        state.applyDefaultSelection(for: .advanced)
+        #expect(state.selectedItems.isEmpty)
+
+        state.applyDefaultSelection(for: .basic)
+        #expect(state.selectedItems.map(\.title) == ["Cache"])
+    }
+
+    @MainActor
+    @Test("select all selects only cleanable, non-excluded items")
+    func selectAllHelpers() throws {
+        let state = AppState(persistence: InMemoryPersistenceService())
+        state.applyResult(try sampleResult())
+
+        state.selectAll(in: state.allItems)
+        #expect(state.selectedItems.count == 2)
+        #expect(!state.selectedItems.contains { $0.risk == .protected })
+
+        state.deselectAll(in: state.allItems)
+        #expect(state.selectedItems.isEmpty)
+    }
+
     @MainActor
     @Test("review items can be selected, protected items cannot")
     func selectionRules() throws {

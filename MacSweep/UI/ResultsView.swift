@@ -7,17 +7,52 @@ struct ResultsView: View {
     private var items: [CleanupItem] { appState.items(for: pane) }
 
     var body: some View {
-        List {
-            ForEach(items) { item in
-                FindingRow(appState: appState, item: item)
+        VStack(spacing: 0) {
+            if !items.isEmpty {
+                selectionBar
+                Divider()
             }
-        }
-        .overlay {
-            if items.isEmpty {
-                emptyState
+            List {
+                ForEach(items) { item in
+                    FindingRow(appState: appState, item: item)
+                }
+            }
+            .overlay {
+                if items.isEmpty {
+                    emptyState
+                }
             }
         }
         .navigationTitle(pane.title)
+    }
+
+    private var selectableItems: [CleanupItem] { appState.selectableItems(in: items) }
+
+    private var selectedSelectableCount: Int {
+        selectableItems.filter { appState.isSelected($0) }.count
+    }
+
+    private var allSelected: Bool {
+        !selectableItems.isEmpty && selectedSelectableCount == selectableItems.count
+    }
+
+    private var selectionBar: some View {
+        HStack {
+            Text("\(selectedSelectableCount) of \(selectableItems.count) selectable item\(selectableItems.count == 1 ? "" : "s") selected")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Button(allSelected ? "Deselect All" : "Select All") {
+                if allSelected {
+                    appState.deselectAll(in: items)
+                } else {
+                    appState.selectAll(in: items)
+                }
+            }
+            .disabled(selectableItems.isEmpty)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
     }
 
     @ViewBuilder

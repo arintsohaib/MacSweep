@@ -6,6 +6,10 @@ struct CleanupReviewSheet: View {
 
     private var items: [CleanupItem] { appState.selectedItems }
 
+    private var riskyItems: [CleanupItem] {
+        items.filter { [ScanCategory.developerCaches, .webStorage, .savedState].contains($0.category) }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(titleText)
@@ -52,6 +56,15 @@ struct CleanupReviewSheet: View {
                 .font(.callout)
 
                 riskSummary
+
+                if !riskyItems.isEmpty {
+                    Label(
+                        "Includes \(riskyItems.count) developer cache / web storage / saved state item\(riskyItems.count == 1 ? "" : "s"). Removing these can slow the next build, re-download data, or sign you out of web sites.",
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
+                    .font(.callout)
+                    .foregroundStyle(.orange)
+                }
 
                 if items.count > 50 {
                     Label(

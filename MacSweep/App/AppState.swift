@@ -67,6 +67,7 @@ final class AppState {
     private(set) var cleanupReport: CleanupReport?
     private(set) var cleanedIDs: Set<CleanupItemID> = []
     var sidebarItem: SidebarItem = .overview
+    private(set) var scanMode: CleanupMode = .basic
 
     private let persistence: any PersistenceService
     var settings: UserSettings
@@ -188,8 +189,11 @@ final class AppState {
         persistence.clearHistory()
     }
 
-    func startScan() {
+    func startScan(mode: CleanupMode) {
         guard !isScanning else { return }
+        scanMode = mode
+        settings.enabledCategories = mode.scanCategories
+        persistence.saveSettings(settings)
         phase = .running
         progress = ScanProgress(phase: .running, message: "Starting scan")
         let engine = ScanEngine(scanners: ScanEngine.defaultScanners)
@@ -199,7 +203,7 @@ final class AppState {
         let reporter = MainActorProgressReporter(appState: self)
         let exclusions = PathExclusions(paths: settings.excludedPaths.map { URL(fileURLWithPath: $0) })
         let config = ScanConfiguration(minLargeFileSize: settings.minLargeFileSize)
-        let categories = settings.enabledCategories
+        let categories = mode.scanCategories
         scanTask = Task {
             let scanResult = await engine.scan(
                 fileSystem: fileSystem,
@@ -211,6 +215,7 @@ final class AppState {
                 enabledCategories: categories
             )
             self.applyResult(scanResult)
+            self.applyDefaultSelection(for: mode)
         }
     }
 
@@ -227,6 +232,33 @@ final class AppState {
         cleanupPhase = .idle
         // Nothing is selected automatically. MacSweep recommends; the user decides.
         selection = []
+    }
+
+    /// Applies the mode's pre-selection. Basic pre-selects only regenerable
+    /// cache and log items; Advanced pre-selects nothing.
+    func applyDefaultSelection(for mode: CleanupMode) {
+        let categories = mode.autoSelectCategories
+        guard !categories.isEmpty else { return }
+        for item in allItems where item.cleanupAllowed && categories.contains(item.category) && !isExcluded(item) {
+            selection.insert(item.id)
+        }
+    }
+
+    /// Items that can be selected right now (cleanable and not excluded).
+    func selectableItems(in items: [CleanupItem]) -> [CleanupItem] {
+        items.filter { $0.cleanupAllowed && !isExcluded($0) }
+    }
+
+    func selectAll(in items: [CleanupItem]) {
+        for item in selectableItems(in: items) {
+            selection.insert(item.id)
+        }
+    }
+
+    func deselectAll(in items: [CleanupItem]) {
+        for item in items {
+            selection.remove(item.id)
+        }
     }
 
     func startCleanup() {
