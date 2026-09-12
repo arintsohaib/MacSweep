@@ -91,6 +91,16 @@ private struct HistoryRecordRow: View {
                                 Text(item.message)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
+                                if let paths = item.paths, !paths.isEmpty {
+                                    ForEach(paths, id: \.self) { path in
+                                        Text(path)
+                                            .font(.caption2)
+                                            .foregroundStyle(.tertiary)
+                                            .textSelection(.enabled)
+                                            .lineLimit(1)
+                                            .truncationMode(.middle)
+                                    }
+                                }
                             }
                             Spacer()
                             if item.size > 0 {

@@ -34,6 +34,8 @@ Include:
 - Never crash because one path disappears.
 - Deduplicate findings.
 - Canonicalize paths.
+- Never classify system-owned data (Apple/MacSweep identifiers) as application leftovers.
+- Never scan `~/Library/Preferences` for cleanup.
 - Avoid scanning enormous irrelevant trees without a rule.
 
 ## Size calculation

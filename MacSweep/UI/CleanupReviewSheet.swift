@@ -53,6 +53,15 @@ struct CleanupReviewSheet: View {
 
                 riskSummary
 
+                if items.count > 50 {
+                    Label(
+                        "You are about to move \(items.count) items to the Trash. Review the affected locations carefully before continuing.",
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
+                    .font(.callout)
+                    .foregroundStyle(.orange)
+                }
+
                 Text(trashExplanation)
                     .font(.callout)
                     .foregroundStyle(.secondary)

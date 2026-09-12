@@ -48,6 +48,18 @@ Use canonicalized URLs/paths and ancestor checks. Protection must survive symlin
 
 Never rely only on string-prefix checks.
 
+## System ownership
+
+Absence of an installed app is not evidence that data is abandoned. macOS ships hundreds of background agents, daemons, frameworks, and internal components that have no application bundle, and their user-library data (default-app associations, Finder/Dock state, notifications, sharing, message state, ...) is system configuration. Removing it makes macOS silently reset user settings.
+
+Therefore:
+
+- Bundle identifiers owned by macOS (`com.apple.*`, `org.cups.*`, `com.openssh.*`, ...) and by MacSweep itself are never cleanup candidates, regardless of app discovery.
+- `~/Library/Preferences` is never scanned for cleanup and is permanently protected at cleanup time.
+- A folder whose name is not a valid reverse-DNS bundle identifier cannot prove application ownership and is not reported as a leftover.
+- Installed-app detection must consider all standard application locations **and** LaunchServices, so system components are recognised as present.
+- Leftover findings are always `review` risk and never pre-selected; nothing is selected automatically.
+
 ## Revalidation
 
 Before cleanup:

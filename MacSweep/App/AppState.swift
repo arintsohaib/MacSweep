@@ -225,11 +225,8 @@ final class AppState {
         cleanedIDs = []
         cleanupReport = nil
         cleanupPhase = .idle
-        var initial: Set<CleanupItemID> = []
-        for item in scanResult.items where item.selectedByDefault && !isExcluded(item) {
-            initial.insert(item.id)
-        }
-        selection = initial
+        // Nothing is selected automatically. MacSweep recommends; the user decides.
+        selection = []
     }
 
     func startCleanup() {
@@ -277,7 +274,8 @@ final class AppState {
                 category: item?.category ?? .uninstalledAppRemnants,
                 status: res.status,
                 size: res.size,
-                message: res.message
+                message: res.message,
+                paths: item?.paths.map { $0.url.path }
             ))
         }
         cleanedIDs.formUnion(cleaned)

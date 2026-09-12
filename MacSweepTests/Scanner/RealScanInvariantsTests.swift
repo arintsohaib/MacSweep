@@ -50,6 +50,19 @@ struct RealScanInvariantsTests {
             }
         }
 
+        // No system-owned (Apple/MacSweep) finding may ever be reported, and
+        // preferences must never appear as a finding.
+        for item in items {
+            if let bundleID = item.application?.bundleIdentifier {
+                #expect(!SystemOwnerRules.isSystemOwned(bundleID),
+                        "System-owned finding reported: \(bundleID.rawValue)")
+            }
+            for path in item.paths {
+                #expect(!path.url.path.contains("/Library/Preferences/"),
+                        "Preference path reported: \(path.url.path)")
+            }
+        }
+
         // The reclaimable total must equal the sum of the cleanable items.
         let expected = items.filter(\.cleanupAllowed).reduce(Int64(0)) { $0 + $1.totalSize }
         #expect(result.reclaimableSize == expected)
@@ -65,5 +78,7 @@ struct RealScanInvariantsTests {
             #expect(!item.cleanupAllowed)
             #expect(!item.selectedByDefault)
         }
+
+        print("[RealScan] findings=\(items.count) cleanable=\(items.filter(\.cleanupAllowed).count) reclaimable=\(result.reclaimableSize) diagnostics=\(result.diagnostics.count)")
     }
 }

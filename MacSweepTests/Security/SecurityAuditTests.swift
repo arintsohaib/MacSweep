@@ -167,4 +167,68 @@ struct SecurityAuditTests {
         #expect(fs.exists(URL(fileURLWithPath: path)))
         #expect(trash.movedSources.isEmpty)
     }
+
+    @Test("system-owned findings are rejected by the cleanup engine")
+    func systemOwnedFindingsRejected() async throws {
+        let fs = InMemoryFileSystem()
+        let path = "/Users/u/Library/Application Support/com.apple.TCC/TCC.db"
+        fs.addFile(path, size: 100)
+
+        let trash = RecordingTrashService(simulatedFileSystem: fs)
+        let engine = CleanupEngine(fileSystem: fs, trash: trash, homeDirectory: home)
+
+        let item = try CleanupItem(
+            category: .uninstalledAppRemnants,
+            application: ApplicationIdentity(
+                bundleIdentifier: BundleIdentifier(rawValue: "com.apple.TCC"),
+                name: "TCC",
+                isInstalled: false
+            ),
+            title: "TCC",
+            reason: "system data",
+            paths: [PathSnapshot(url: URL(fileURLWithPath: path), kind: .file, size: 100, modificationDate: nil)],
+            risk: .review,
+            confidence: .high,
+            evidence: [Evidence(kind: .bundleIdentifierMatch, detail: "evidence")],
+            recommendedAction: .moveToTrash,
+            selectedByDefault: false,
+            cleanupAllowed: true
+        )
+
+        let report = await engine.cleanup(selectedItems: [item])
+        #expect(!report.isFullySucceeded)
+        #expect(report.rejectedCount == 1)
+        #expect(report.results.first?.errorCategory == .protected)
+        #expect(fs.exists(URL(fileURLWithPath: path)))
+        #expect(trash.movedSources.isEmpty)
+    }
+
+    @Test("preference paths are rejected by the cleanup engine")
+    func preferencePathsRejected() async throws {
+        let fs = InMemoryFileSystem()
+        let path = "/Users/u/Library/Preferences/com.vendor.Gone.plist"
+        fs.addFile(path, size: 50)
+
+        let trash = RecordingTrashService(simulatedFileSystem: fs)
+        let engine = CleanupEngine(fileSystem: fs, trash: trash, homeDirectory: home)
+
+        let item = try CleanupItem(
+            category: .uninstalledAppRemnants,
+            title: "Gone",
+            reason: "leftover preferences",
+            paths: [PathSnapshot(url: URL(fileURLWithPath: path), kind: .file, size: 50, modificationDate: nil)],
+            risk: .review,
+            confidence: .medium,
+            evidence: [Evidence(kind: .pathConvention, detail: "evidence")],
+            recommendedAction: .moveToTrash,
+            selectedByDefault: false,
+            cleanupAllowed: true
+        )
+
+        let report = await engine.cleanup(selectedItems: [item])
+        #expect(report.rejectedCount == 1)
+        #expect(report.results.first?.errorCategory == .protected)
+        #expect(fs.exists(URL(fileURLWithPath: path)))
+        #expect(trash.movedSources.isEmpty)
+    }
 }

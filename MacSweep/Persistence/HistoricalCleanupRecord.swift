@@ -8,6 +8,9 @@ public struct HistoricalItemResult: Codable, Sendable, Identifiable, Equatable {
     public let status: CleanupItemResult.Status
     public let size: Int64
     public let message: String
+    /// Affected paths at the time of cleanup. Optional for backwards compatibility
+    /// with records written before path auditing was added.
+    public let paths: [String]?
 
     public init(
         id: UUID = UUID(),
@@ -16,7 +19,8 @@ public struct HistoricalItemResult: Codable, Sendable, Identifiable, Equatable {
         category: ScanCategory,
         status: CleanupItemResult.Status,
         size: Int64,
-        message: String
+        message: String,
+        paths: [String]? = nil
     ) {
         self.id = id
         self.itemID = itemID
@@ -25,6 +29,7 @@ public struct HistoricalItemResult: Codable, Sendable, Identifiable, Equatable {
         self.status = status
         self.size = size
         self.message = message
+        self.paths = paths
     }
 }
 

@@ -28,7 +28,7 @@ MacSweep is a native macOS utility that scans your user library for caches, logs
 
 | Category | What it finds |
 |---|---|
-| **Uninstalled Apps** | Containers, group containers, Application Support, caches, logs, WebKit storage, preferences, and launch agents left behind by apps that are no longer installed |
+| **Uninstalled Apps** | Containers, group containers, Application Support, caches, logs, WebKit storage, and launch agents left behind by **third-party** apps that are no longer installed. Review-only: never pre-selected, and Apple/system components are never reported |
 | **Caches** | Per-application caches in `~/Library/Caches` |
 | **Logs** | Per-application logs in `~/Library/Logs` |
 | **Developer** | Xcode DerivedData, CoreSimulator caches, Homebrew/SPM/npm/Yarn/pip/Gradle caches, Playwright browsers. Docker VM storage is shown as protected, never cleaned |
@@ -39,10 +39,16 @@ MacSweep is a native macOS utility that scans your user library for caches, logs
 Other highlights:
 
 - **Risk model** — `low` (default-selected), `review` (not selected by default), and `protected` (never cleanable) levels with per-finding evidence.
-- **Protected paths** — system roots and personal folders (`Documents`, `Desktop`, `.ssh`, Keychains, mail, messages, browser profiles) are permanently protected and cannot be disabled by any setting.
+- **Nothing is selected automatically.** Every scan starts with an empty selection; you choose exactly what to clean.
+- **System-owned data is never touched** — Apple bundle identifiers (`com.apple.*`), core-OS components, and preference files are excluded from detection and permanently protected at cleanup time. macOS background services are not "uninstalled apps".
+- **Protected paths** — system roots, personal folders (`Documents`, `Desktop`, `Downloads`, `~/Library/Preferences`), credentials (`.ssh`, `.gnupg`, `.aws`), Keychains, mail, messages, and browser profiles are permanently protected and cannot be disabled by any setting.
 - **Per-item exclusions** — exclude any finding (or any path in Settings); exclusions persist and are honored by future scans.
-- **Cleanup history** — every cleanup operation is recorded with per-item outcomes and recovered/failed/rejected accounting.
+- **Cleanup history** — every cleanup operation is recorded with the affected paths, per-item outcomes, and moved/failed/rejected accounting.
 - **Permission-honest** — if macOS limits what can be read, MacSweep tells you exactly which areas were limited instead of requesting elevated privileges.
+
+## Recovering cleaned items
+
+Every cleanup moves items to the macOS Trash; MacSweep never permanently deletes anything. To restore an item, open **Finder → Trash**, right-click it, and choose **Put Back** — macOS returns it to its original location. The **History** pane records each operation, including the exact paths that were affected.
 
 ## Requirements
 

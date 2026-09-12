@@ -40,7 +40,7 @@ struct UninstalledAppRemnantsScannerTests {
         fileSystem.addFile("\(home)/Library/Caches/com.vendor.Gone/c.bin", size: 4096)
     }
 
-    @Test("abandoned app data is detected as one low-risk finding")
+    @Test("abandoned app data is detected as one review-only finding")
     func abandonedAppData() async throws {
         let fileSystem = InMemoryFileSystem()
         addGoneAppData(fileSystem)
@@ -49,9 +49,9 @@ struct UninstalledAppRemnantsScannerTests {
 
         #expect(items.count == 1)
         let item = try #require(items.first)
-        #expect(item.risk == .low)
+        #expect(item.risk == .review)
         #expect(item.confidence == .high)
-        #expect(item.selectedByDefault)
+        #expect(!item.selectedByDefault)
         #expect(item.cleanupAllowed)
         #expect(item.application?.bundleIdentifier?.rawValue == "com.vendor.Gone")
         #expect(item.paths.count == 3)
@@ -98,20 +98,15 @@ struct UninstalledAppRemnantsScannerTests {
         #expect(items.isEmpty)
     }
 
-    @Test("name-based folders with no matching app are review-only")
-    func unattributedFolderIsReview() async throws {
+    @Test("name-based folders with no matching app are not reported")
+    func unattributedFolderIsNotReported() async throws {
         let fileSystem = InMemoryFileSystem()
         fileSystem.addDirectory("\(home)/Library/Application Support/MysteryApp")
         fileSystem.addFile("\(home)/Library/Application Support/MysteryApp/data.bin", size: 10)
         let context = makeContext(fileSystem: fileSystem, registry: installedRegistry())
         let items = try await UninstalledAppRemnantsScanner().scan(context: context)
 
-        #expect(items.count == 1)
-        let item = try #require(items.first)
-        #expect(item.risk == .review)
-        #expect(item.confidence == .low)
-        #expect(!item.selectedByDefault)
-        #expect(item.application == nil)
+        #expect(items.isEmpty)
     }
 
     @Test("all conventional location types are merged into one finding")
@@ -125,15 +120,27 @@ struct UninstalledAppRemnantsScannerTests {
         fileSystem.addFile("\(home)/Library/HTTPStorages/com.vendor.Gone.binarycookies", size: 30)
         fileSystem.addDirectory("\(home)/Library/Saved Application State/com.vendor.Gone.savedState")
         fileSystem.addFile("\(home)/Library/Saved Application State/com.vendor.Gone.savedState/s.bin", size: 50)
-        fileSystem.addFile("\(home)/Library/Preferences/com.vendor.Gone.plist", size: 10)
         let context = makeContext(fileSystem: fileSystem, registry: installedRegistry())
         let items = try await UninstalledAppRemnantsScanner().scan(context: context)
 
         #expect(items.count == 1)
         let item = try #require(items.first)
-        #expect(item.paths.count == 8)
-        #expect(item.totalSize == 1024 + 2048 + 4096 + 100 + 200 + 30 + 50 + 10)
-        #expect(item.risk == .low)
+        #expect(item.paths.count == 7)
+        #expect(item.totalSize == 1024 + 2048 + 4096 + 100 + 200 + 30 + 50)
+        #expect(item.risk == .review)
+    }
+
+    @Test("preference files are never reported or cleanable")
+    func preferencesNeverReported() async throws {
+        let fileSystem = InMemoryFileSystem()
+        fileSystem.addFile("\(home)/Library/Preferences/com.vendor.Gone.plist", size: 10)
+        fileSystem.addFile("\(home)/Library/Preferences/com.apple.finder.plist", size: 20)
+        fileSystem.addDirectory("\(home)/Library/Preferences/com.apple.LaunchServices")
+        fileSystem.addFile("\(home)/Library/Preferences/com.apple.LaunchServices/x.plist", size: 5)
+        let context = makeContext(fileSystem: fileSystem, registry: installedRegistry())
+        let items = try await UninstalledAppRemnantsScanner().scan(context: context)
+
+        #expect(items.isEmpty)
     }
 
     @Test("launch metadata downgrades the finding to review")
@@ -210,24 +217,22 @@ struct UninstalledAppRemnantsScannerTests {
         #expect(items.isEmpty)
     }
 
-    @Test("remnants inside permanently protected locations are review-only")
-    func protectedLocationRemnantsAreReviewOnly() async throws {
+    @Test("Apple system components and MacSweep itself are never reported as leftovers")
+    func appleSystemRemnantsAreNeverReported() async throws {
         let fileSystem = InMemoryFileSystem()
-        fileSystem.addDirectory("\(home)/Library/Containers/com.apple.AddressBook")
-        fileSystem.addFile("\(home)/Library/Containers/com.apple.AddressBook/x.bin", size: 1024)
-        fileSystem.addDirectory("\(home)/Library/Application Support/com.apple.AddressBook")
-        fileSystem.addFile("\(home)/Library/Application Support/com.apple.AddressBook/AddressBook.sql", size: 2048)
+        for name in ["com.apple.TCC", "com.apple.sharedfilelist", "com.apple.containermanagerd", "com.apple.AddressBook"] {
+            fileSystem.addDirectory("\(home)/Library/Application Support/\(name)")
+            fileSystem.addFile("\(home)/Library/Application Support/\(name)/x.bin", size: 100)
+        }
+        fileSystem.addDirectory("\(home)/Library/Containers/com.apple.finder")
+        fileSystem.addDirectory("\(home)/Library/Saved Application State/com.apple.loginwindow.savedState")
+        fileSystem.addFile("\(home)/Library/LaunchAgents/com.apple.someagent.plist", size: 10)
+        fileSystem.addDirectory("\(home)/Library/Group Containers/group.com.apple.shared")
+        fileSystem.addDirectory("\(home)/Library/Containers/\(SystemOwnerRules.selfBundlePrefix)helper")
         let context = makeContext(fileSystem: fileSystem, registry: installedRegistry())
         let items = try await UninstalledAppRemnantsScanner().scan(context: context)
 
-        #expect(items.count == 1)
-        let item = try #require(items.first)
-        #expect(item.application?.bundleIdentifier?.rawValue == "com.apple.AddressBook")
-        #expect(item.risk == .review)
-        #expect(!item.selectedByDefault)
-        #expect(!item.cleanupAllowed)
-        #expect(item.recommendedAction == .reviewOnly)
-        #expect(item.reason.contains("permanently protected"))
+        #expect(items.isEmpty)
     }
 
     @Test("symlinked data is measured as zero and still reported")

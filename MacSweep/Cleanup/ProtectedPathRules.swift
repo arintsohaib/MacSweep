@@ -13,9 +13,14 @@ public struct ProtectedPathRules: Sendable {
         let sensitive: [String] = [
             "Documents", "Desktop", "Downloads", "Movies", "Music", "Pictures", "Public",
             ".ssh", ".gnupg", ".aws",
+            // Preferences are user settings, never reclaimable storage. macOS
+            // silently resets them (default apps, Dock, Finder, ...) when removed.
+            "Library/Preferences",
             "Library/Keychains", "Library/Mail", "Library/Messages", "Library/Safari",
             "Library/Application Support/Google/Chrome",
             "Library/Application Support/com.apple.AddressBook",
+            // MacSweep must never touch its own settings/history.
+            "Library/Application Support/MacSweep",
         ]
         prefixRoots = (systemRoots + sensitive.map { home.appendingPathComponent($0).standardizedFileURL.path }).sorted()
         exactRoots = ["/", home.path]

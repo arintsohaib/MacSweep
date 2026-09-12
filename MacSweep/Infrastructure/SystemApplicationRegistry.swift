@@ -4,8 +4,11 @@ import Foundation
 public final class SystemApplicationRegistry: ApplicationRegistry, @unchecked Sendable {
     public static let defaultSearchPaths: [URL] = [
         URL(fileURLWithPath: "/Applications", isDirectory: true),
+        URL(fileURLWithPath: "/Applications/Utilities", isDirectory: true),
         URL(fileURLWithPath: "/System/Applications", isDirectory: true),
         URL(fileURLWithPath: "/System/Applications/Utilities", isDirectory: true),
+        URL(fileURLWithPath: "/System/Library/CoreServices", isDirectory: true),
+        URL(fileURLWithPath: "/System/Library/CoreServices/Applications", isDirectory: true),
         FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications", isDirectory: true),
     ]
 

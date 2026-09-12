@@ -37,6 +37,16 @@ public struct CleanupEngine: Sendable {
     }
 
     private func process(_ item: CleanupItem) -> CleanupItemResult {
+        if SystemOwnerRules.isProtectedOwner(item.application) {
+            return CleanupItemResult(
+                itemID: item.id,
+                status: .rejected,
+                errorCategory: .protected,
+                message: "\(item.title) belongs to macOS or MacSweep and is never cleaned.",
+                recoverySuggestion: "System-owned data is permanently protected."
+            )
+        }
+
         guard item.cleanupAllowed, item.risk != .protected else {
             return CleanupItemResult(
                 itemID: item.id,

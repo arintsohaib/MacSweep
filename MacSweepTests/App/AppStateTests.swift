@@ -46,14 +46,13 @@ struct AppStateTests {
     }
 
     @MainActor
-    @Test("default-selected items are selected after a finished scan")
+    @Test("nothing is selected automatically after a finished scan")
     func defaults() throws {
         let state = AppState(persistence: InMemoryPersistenceService())
         state.applyResult(try sampleResult())
         #expect(state.phase == AppState.ScanPhase.finished)
-        #expect(state.selectedItems.count == 1)
-        #expect(state.selectedItems.first?.title == "Gone")
-        #expect(state.selectedSize == 1000)
+        #expect(state.selectedItems.isEmpty)
+        #expect(state.selectedSize == 0)
     }
 
     @MainActor
