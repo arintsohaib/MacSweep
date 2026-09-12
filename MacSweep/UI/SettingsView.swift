@@ -5,6 +5,46 @@ struct SettingsView: View {
     @State private var newPathText = ""
     @State private var showClearHistoryConfirmation = false
 
+    /// Categories that have a scan rule in this build. Others are shown for
+    /// transparency but cannot be enabled.
+    private var implementedCategories: Set<ScanCategory> {
+        Set(ScanEngine.defaultScanners.map(\.category))
+    }
+
+    @ViewBuilder
+    private func categoryRow(_ category: ScanCategory) -> some View {
+        let implemented = implementedCategories.contains(category)
+        Toggle(isOn: Binding(
+            get: { appState.settings.enabledCategories.contains(category) },
+            set: { enabled in
+                var updated = appState.settings.enabledCategories
+                if enabled {
+                    updated.insert(category)
+                } else {
+                    updated.remove(category)
+                }
+                appState.settings.enabledCategories = updated
+                appState.updateSettings(appState.settings)
+            }
+        )) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(category.displayName)
+                Text(category.settingsSummary)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Image(systemName: category.cleanupRisk == .informational ? "info.circle" : "exclamationmark.triangle")
+                        .font(.caption2)
+                    Text(category.settingsCleanupNote)
+                        .font(.caption2)
+                }
+                .foregroundStyle(category.cleanupRisk == .informational ? Color.secondary : Color.orange)
+            }
+        }
+        .disabled(!implemented)
+        .opacity(implemented ? 1 : 0.55)
+    }
+
     private let sizeOptions: [(String, Int64)] = [
         ("100 MB", 100 * 1024 * 1024),
         ("250 MB", 250 * 1024 * 1024),
@@ -17,23 +57,11 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Section("Scan Categories") {
-                Text("Select which categories are included when running a scan.")
+                Text("Choose which categories are scanned. Categories marked Review are never pre-selected — you choose each item before anything is moved to the Trash.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 ForEach(ScanCategory.allCases.filter { $0 != .reviewOnly }) { category in
-                    Toggle(category.displayName, isOn: Binding(
-                        get: { appState.settings.enabledCategories.contains(category) },
-                        set: { enabled in
-                            var updated = appState.settings.enabledCategories
-                            if enabled {
-                                updated.insert(category)
-                            } else {
-                                updated.remove(category)
-                            }
-                            appState.settings.enabledCategories = updated
-                            appState.updateSettings(appState.settings)
-                        }
-                    ))
+                    categoryRow(category)
                 }
             }
 
@@ -92,12 +120,21 @@ struct SettingsView: View {
             }
 
             Section("Safety Policy") {
-                VStack(alignment: .leading, spacing: 4) {
-                    Label("Protected Paths Cannot Be Overridden", systemImage: "shield.checkered")
-                        .font(.callout.bold())
-                    Text("System roots (`/System`, `/usr`, `/bin`, `/etc`) and personal user folders (`Documents`, `Desktop`, `.ssh`, `Keychains`) are permanently protected by MacSweep's safety engine and can never be disabled by settings.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Label("Protected Paths Cannot Be Overridden", systemImage: "shield.checkered")
+                            .font(.callout.bold())
+                        Text("System roots (`/System`, `/usr`, `/bin`, `/etc`) and personal folders (`Documents`, `Desktop`, `Downloads`, `~/Library/Preferences`, `.ssh`, `Keychains`) are permanently protected by MacSweep's safety engine and can never be disabled by settings.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    VStack(alignment: .leading, spacing: 4) {
+                        Label("Some Findings Are Never Cleaned", systemImage: "info.circle")
+                            .font(.callout.bold())
+                        Text("Uninstalled Apps and Large Files are informational only: you review them and act yourself. MacSweep never moves their items.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
 
