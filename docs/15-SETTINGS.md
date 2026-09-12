@@ -43,6 +43,7 @@ No "allow dangerous cleanup" switch in v1.
 ## Cleanup modes and defaults (v0.4.0)
 
 - Default `UserSettings` enables only the Basic profile (`applicationCaches`, `logs`, `uninstalledAppRemnants`, `largeFiles`). Developer caches, web storage and saved state are opt-in via Advanced Clean or Settings.
+- Settings written by older builds (version 1, every category enabled) are migrated to the Basic profile on first load and persisted as version 2, so upgrading users also get the safer default. Users can re-enable categories in Settings or by choosing Advanced Clean.
 - `CleanupMode` defines the scan profile and the categories Basic may pre-select (regenerable only: caches and logs).
 - Choosing a mode on the Overview updates `enabledCategories`, so Settings always reflects the current profile.
 - Advanced Clean never pre-selects; users select explicitly, with Select All selecting only cleanable, non-excluded items.

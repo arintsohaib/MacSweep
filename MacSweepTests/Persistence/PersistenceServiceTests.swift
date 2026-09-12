@@ -26,10 +26,27 @@ struct PersistenceServiceTests {
         service.saveSettings(settings)
 
         let loaded = service.loadSettings()
-        #expect(loaded.version == 1)
+        #expect(loaded.version == UserSettings.currentVersion)
         #expect(loaded.minLargeFileSize == 100 * 1024 * 1024)
         #expect(loaded.excludedPaths == ["/Users/u/Skip"])
         #expect(loaded.enabledCategories == [.uninstalledAppRemnants, .logs])
+    }
+
+    @Test("pre-0.4.0 settings that enabled every category migrate to the Basic profile")
+    func migratesOldCategoryDefaults() throws {
+        let dir = try makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let service = FilePersistenceService(directory: dir)
+        // Simulate settings written by an older build: version 1, every category on.
+        service.saveSettings(UserSettings(version: 1, enabledCategories: Set(ScanCategory.allCases)))
+
+        let loaded = service.loadSettings()
+        #expect(loaded.version == UserSettings.currentVersion)
+        #expect(loaded.enabledCategories == CleanupMode.basic.scanCategories)
+
+        // The migration is written back, so a second load is stable.
+        #expect(service.loadSettings() == loaded)
     }
 
     @Test("missing settings file returns defaults")

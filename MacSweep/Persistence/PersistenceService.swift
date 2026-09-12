@@ -39,13 +39,23 @@ public final class FilePersistenceService: PersistenceService, @unchecked Sendab
         guard let data = try? Data(contentsOf: settingsURL) else {
             return .default
         }
-        let decoder = JSONDecoder()
-        return (try? decoder.decode(UserSettings.self, from: data)) ?? .default
+        guard let decoded = try? JSONDecoder().decode(UserSettings.self, from: data) else {
+            return .default
+        }
+        let migrated = decoded.migratedToCurrentVersion()
+        if migrated != decoded {
+            writeSettingsLocked(migrated)
+        }
+        return migrated
     }
 
     public func saveSettings(_ settings: UserSettings) {
         lock.lock()
         defer { lock.unlock() }
+        writeSettingsLocked(settings)
+    }
+
+    private func writeSettingsLocked(_ settings: UserSettings) {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         guard let data = try? encoder.encode(settings) else { return }
